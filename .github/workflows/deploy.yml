@@ -1,0 +1,76 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.json'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build TypeScript
+        run: pnpm build
+
+      - name: Prepare Deployment Package
+        run: |
+          mkdir -p deploy/backend
+          cp -r dist deploy/backend/
+          cp package.json pnpm-lock.yaml deploy/backend/
+          if [ -f ecosystem.config.js ]; then cp ecosystem.config.js deploy/backend/; fi
+          cd deploy
+          zip -r ../backend-deploy.zip backend
+          cd ..
+
+      - name: Deploy to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ${{ secrets.HOST_USER }}
+          password: ${{ secrets.HOST_PASSWORD }}
+          source: "backend-deploy.zip"
+          target: "/${{ secrets.HOST_USER }}/node/doctor_tracker_backend/test"
+
+      - name: Restart Backend on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ${{ secrets.HOST_USER }}
+          password: ${{ secrets.HOST_PASSWORD }}
+          script: |
+            cd /${{ secrets.HOST_USER }}/node/doctor_tracker_backend/test
+            unzip -o backend-deploy.zip
+            rm -f backend-deploy.zip
+            cd backend
+            pnpm install --prod
+            cd ../
+            # 1. Remove previous live backend directory
+            rm -rf ../backend
+            # 2. Promote freshly deployed backend folder
+            mv backend ../
+            # 3. Reload or restart PM2 process
+            pm2 reload doctor_tracker_backend || pm2 restart doctor_tracker_backend || pm2 start ../backend/dist/index.js --name doctor_tracker_backend

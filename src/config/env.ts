@@ -23,8 +23,8 @@ const schema = z.object({
     // Seed Admin
     SEED_ADMIN_NAME: z.string().default("AnZ Admin"),
     SEED_ADMIN_EMAIL: z.string().default("admin@test.com"),
-    SEED_ADMIN_PASSWORD: z.string().default("test123")
-})
+    SEED_ADMIN_PASSWORD: z.string().default("ChangeMe123!"),
+});
 
 const parsed = schema.safeParse(process.env);
 
