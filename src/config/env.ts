@@ -1,5 +1,11 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import { z } from "zod";
+
+dotenv.config();
+
+if (process.env.NODE_ENV === "test") {
+    dotenv.config({ path: ".env.test", override: true });
+}
 
 const schema = z.object({
     // General
