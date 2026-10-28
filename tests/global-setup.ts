@@ -13,10 +13,20 @@ export async function setup() {
     await mongoose.connect(env.MONGODB_URI);
     console.log("\n[global-setup] Connected to test DB:", env.MONGODB_URI);
 
-    // Wipe the users and sessions collections for a clean slate
-    await mongoose.connection.collection("users").deleteMany({});
-    await mongoose.connection.collection("sessions").deleteMany({});
-    console.log("[global-setup] Cleared users and sessions collections");
+    // Drop legacy unique index on phone if present in test DB
+    await mongoose.connection
+        .collection("doctorprofiles")
+        .dropIndex("phone_1")
+        .catch(() => {});
+
+    // Wipe collections for a clean slate
+    await Promise.all([
+        mongoose.connection.collection("users").deleteMany({}),
+        mongoose.connection.collection("sessions").deleteMany({}),
+        mongoose.connection.collection("doctorprofiles").deleteMany({}),
+        mongoose.connection.collection("patientprofiles").deleteMany({}),
+    ]);
+    console.log("[global-setup] Cleared test DB collections");
 
     // Seed the admin user
     const passwordHash = await argon2.hash(env.SEED_ADMIN_PASSWORD);
@@ -32,9 +42,12 @@ export async function setup() {
 
 export async function teardown() {
     // Clean up after all tests
-    await mongoose.connection.collection("users").deleteMany({});
-    await mongoose.connection.collection("sessions").deleteMany({});
+    await Promise.all([
+        mongoose.connection.collection("users").deleteMany({}),
+        mongoose.connection.collection("sessions").deleteMany({}),
+        mongoose.connection.collection("doctorprofiles").deleteMany({}),
+        mongoose.connection.collection("patientprofiles").deleteMany({}),
+    ]);
     await mongoose.disconnect();
     console.log("[global-setup] Disconnected from test DB");
 }
-
