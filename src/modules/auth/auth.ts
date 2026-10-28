@@ -1,24 +1,10 @@
 import { Router } from "express";
 import * as argon2 from "argon2";
-import { z } from "zod";
-import { UserModel } from "../db/schema/index.js";
-import { badRequest, conflict, unauthorized } from "../lib/http.js";
-import { requireAuth } from "../middleware/auth.js";
-
+import { UserModel } from "../../db/schema/index.js";
+import { badRequest, conflict, unauthorized } from "../../lib/http.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { LoginSchema, RegisterSchema } from "./validation.js";
 export const authRouter = Router();
-
-// ── Validation schemas ──────────────────────────────────────────────────────
-
-const RegisterSchema = z.object({
-    name: z.string().min(1).max(100),
-    email: z.string().email().max(255),
-    password: z.string().min(8).max(72), // argon2 max is 72 bytes
-});
-
-const LoginSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1),
-});
 
 // ── POST /api/auth/register ─────────────────────────────────────────────────
 
@@ -61,7 +47,7 @@ authRouter.post("/register", async (req, res, next) => {
 authRouter.post("/login", async (req, res, next) => {
     try {
         const body = LoginSchema.parse(req.body);
-
+        console.log(body)
         const user = await UserModel.findOne({ email: body.email });
         if (!user || !user.isActive) return next(unauthorized("Invalid credentials"));
 

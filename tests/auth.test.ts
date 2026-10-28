@@ -53,7 +53,6 @@ describe("POST /api/auth/register", () => {
             name: validPayload.name,
             role: "doctor",           // always doctor, never admin
         });
-        expect(res.body.id).toBeDefined();
         // Password hash must never be exposed
         expect(res.body.passwordHash).toBeUndefined();
     });

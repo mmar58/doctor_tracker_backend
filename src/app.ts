@@ -8,7 +8,7 @@ import MongoStore from "connect-mongo";
 import { requireCustomHeader } from "./middleware/security.js";
 import { attachUser } from "./middleware/auth.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
-import { authRouter } from "./routes/auth.js";
+import { authRouter } from "./modules/auth/auth.js";
 
 export const SESSION_COOKIE = "anz.session";
 
