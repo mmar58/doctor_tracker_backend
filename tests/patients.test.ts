@@ -459,5 +459,27 @@ describe("DELETE /api/patients/:id", () => {
         const stillInDb = await PatientModel.findById(patient2._id);
         expect(stillInDb).not.toBeNull();
     });
+
+    it("admin can unassign a doctor from a patient", async () => {
+        const doc = await createTestDoctor({ email: "docunassign@test.com" });
+        const patient = await PatientModel.create({
+            name: "Patient to Unassign",
+            status: "good",
+            gender: "female",
+            age: 40,
+            description: "Desc",
+            doctors: [doc.profile._id],
+        });
+
+        const res = await adminAgent
+            .delete(`/api/patients/${patient._id}/doctors/${doc.profile._id}`)
+            .set(HEADERS);
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        const updated = await PatientModel.findById(patient._id);
+        expect(updated?.doctors).toHaveLength(0);
+    });
 });
 

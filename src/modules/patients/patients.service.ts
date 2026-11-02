@@ -188,3 +188,34 @@ export async function deletePatient(id: string, currentUser?: CurrentUser) {
 
     return { success: true, message: "Patient deleted successfully" };
 }
+
+// ── unassignDoctorFromPatient ─────────────────────────────────────────────────
+export async function unassignDoctorFromPatient(
+    patientId: string,
+    doctorId: string,
+    currentUser?: CurrentUser
+) {
+    if (!mongoose.Types.ObjectId.isValid(patientId)) throw badRequest("Invalid patient ID");
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) throw badRequest("Invalid doctor ID");
+
+    const patientObjectId = new mongoose.Types.ObjectId(patientId);
+    const doctorObjectId = new mongoose.Types.ObjectId(doctorId);
+
+    // If the requesting user is a doctor, they can only unassign themselves from their own patient
+    if (currentUser?.role === "doctor") {
+        const profileId = await resolveOwnProfile(currentUser._id);
+        if (profileId.toString() !== doctorId) {
+            throw forbidden("Doctors can only unassign themselves.");
+        }
+        await assertDoctorOwnsPatient(patientObjectId, profileId);
+    }
+
+    const patient = await PatientModel.findById(patientObjectId);
+    if (!patient) throw notFound("Patient not found");
+
+    await PatientModel.findByIdAndUpdate(patientObjectId, {
+        $pull: { doctors: doctorObjectId },
+    });
+
+    return { success: true, message: "Doctor unassigned from patient successfully" };
+}

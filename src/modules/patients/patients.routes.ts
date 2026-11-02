@@ -60,3 +60,15 @@ patientsRouter.delete("/:id", requireAuth, async (req, res, next) => {
         next(err);
     }
 });
+
+// Unassign doctor from patient (admin or doctor unassigning themselves)
+patientsRouter.delete("/:id/doctors/:doctorId", requireAuth, async (req, res, next) => {
+    try {
+        const patientId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const doctorId = Array.isArray(req.params.doctorId) ? req.params.doctorId[0] : req.params.doctorId;
+        const result = await patientsService.unassignDoctorFromPatient(patientId, doctorId, req.user);
+        res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
