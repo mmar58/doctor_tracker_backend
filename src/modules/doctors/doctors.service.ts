@@ -1,17 +1,57 @@
 import mongoose from "mongoose";
 import * as argon2 from "argon2";
-import { UserModel, DoctorProfile, PatientModel } from "../../db/schema/index.js";
+import { UserModel, DoctorProfile, PatientModel, DoctorSpecializationModel } from "../../db/schema/index.js";
 import { badRequest, conflict, notFound } from "../../lib/http.js";
 import { CreateDoctorInput, UpdateDoctorInput, QueryDoctorsInput } from "./doctors.validation.js";
 
+export async function listSpecializations() {
+    return DoctorSpecializationModel.find().sort({ name: 1 }).lean();
+}
+
 export async function listDoctors(query: QueryDoctorsInput) {
-    const { search, page, limit } = query;
+    const { search, specialization, minPatients, page, limit } = query;
     const skip = (page - 1) * limit;
 
     const filter: Record<string, unknown> = {};
     if (search) {
         const regex = new RegExp(search, "i");
         filter.$or = [{ name: regex }, { hospital: regex }, { phone: regex }];
+    }
+
+    if (specialization) {
+        if (mongoose.Types.ObjectId.isValid(specialization)) {
+            filter.specialization = new mongoose.Types.ObjectId(specialization);
+        } else {
+            // Find specialization by name if a name was passed
+            const matchedSpec = await DoctorSpecializationModel.findOne({
+                name: new RegExp(`^${specialization}$`, "i"),
+            }).lean();
+            if (matchedSpec) {
+                filter.specialization = matchedSpec._id;
+            } else {
+                return {
+                    data: [],
+                    pagination: { total: 0, page, limit, totalPages: 1 },
+                };
+            }
+        }
+    }
+
+    if (minPatients !== undefined && minPatients > 0) {
+        // Find doctor IDs that have at least minPatients assigned
+        const qualifyingDoctors = await PatientModel.aggregate([
+            { $unwind: "$doctors" },
+            { $group: { _id: "$doctors", count: { $sum: 1 } } },
+            { $match: { count: { $gte: minPatients } } },
+        ]);
+
+        const qualifyingIds = qualifyingDoctors.map((q) => q._id);
+        if (filter._id) {
+            filter.$and = [{ _id: filter._id }, { _id: { $in: qualifyingIds } }];
+            delete filter._id;
+        } else {
+            filter._id = { $in: qualifyingIds };
+        }
     }
 
     const [total, doctors] = await Promise.all([

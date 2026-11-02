@@ -5,6 +5,16 @@ import * as doctorsService from "./doctors.service.js";
 
 export const doctorsRouter = Router();
 
+// List specializations (auth required)
+doctorsRouter.get("/specializations", requireAuth, async (_req, res, next) => {
+    try {
+        const specializations = await doctorsService.listSpecializations();
+        res.json(specializations);
+    } catch (err) {
+        next(err);
+    }
+});
+
 // List doctors (auth required)
 doctorsRouter.get("/", requireAuth, async (req, res, next) => {
     try {

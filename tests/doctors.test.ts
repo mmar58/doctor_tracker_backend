@@ -90,6 +90,47 @@ describe("GET /api/doctors", () => {
         expect(res.body.pagination.limit).toBe(2);
         expect(res.body.pagination.totalPages).toBeGreaterThanOrEqual(2);
     });
+
+    it("supports filtering by specialization", async () => {
+        const { DoctorSpecializationModel } = await import("../src/db/schema/index.js");
+        const spec = await DoctorSpecializationModel.create({ name: "Cardiology Test Spec" });
+        const doc1 = await createTestDoctor({ email: "cardio1@test.com", specialization: [spec._id] });
+        await createTestDoctor({ email: "other1@test.com" });
+
+        const res = await adminAgent.get(`/api/doctors?specialization=${spec._id}`).set(HEADERS);
+        expect(res.status).toBe(200);
+        expect(res.body.data.length).toBe(1);
+        expect(res.body.data[0]._id).toBe(doc1.profile._id.toString());
+    });
+
+    it("supports filtering by minPatients count", async () => {
+        const { PatientModel } = await import("../src/db/schema/index.js");
+        const docBusy = await createTestDoctor({ email: "busy@test.com" });
+        const docIdle = await createTestDoctor({ email: "idle@test.com" });
+
+        await PatientModel.create([
+            { name: "P1", status: "stable", admit: false, gender: "male", age: 30, description: "desc", doctors: [docBusy.profile._id] },
+            { name: "P2", status: "stable", admit: false, gender: "male", age: 31, description: "desc", doctors: [docBusy.profile._id] },
+        ]);
+
+        const res = await adminAgent.get("/api/doctors?minPatients=2").set(HEADERS);
+        expect(res.status).toBe(200);
+        expect(res.body.data.length).toBe(1);
+        expect(res.body.data[0]._id).toBe(docBusy.profile._id.toString());
+    });
+});
+
+// ── GET /api/doctors/specializations ─────────────────────────────────────────
+describe("GET /api/doctors/specializations", () => {
+    it("returns list of available specializations", async () => {
+        const { DoctorSpecializationModel } = await import("../src/db/schema/index.js");
+        await DoctorSpecializationModel.create({ name: "Dermatology Test" });
+
+        const res = await adminAgent.get("/api/doctors/specializations").set(HEADERS);
+        expect(res.status).toBe(200);
+        expect(res.body).toBeInstanceOf(Array);
+        expect(res.body.some((s: { name: string }) => s.name === "Dermatology Test")).toBe(true);
+    });
 });
 
 // ── GET /api/doctors/:id ─────────────────────────────────────────────────────

@@ -21,6 +21,8 @@ export const UpdateDoctorSchema = z.object({
 
 export const QueryDoctorsSchema = z.object({
     search: z.string().trim().optional(),
+    specialization: z.string().trim().optional(),
+    minPatients: z.coerce.number().int().min(0).optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
 });

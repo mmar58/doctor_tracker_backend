@@ -36,6 +36,7 @@ export async function createTestDoctor(data: {
     password?: string;
     hospital?: string;
     phone?: string;
+    specialization?: any[];
 }) {
     doctorSeq++;
     const name = data.name ?? `Test Doctor ${doctorSeq}`;
@@ -57,7 +58,7 @@ export async function createTestDoctor(data: {
         name,
         hospital,
         phone,
-        specialization: [],
+        specialization: data.specialization ?? [],
     });
 
     return { user, profile, password };
@@ -67,4 +68,6 @@ export async function cleanupNonAdminData() {
     await UserModel.deleteMany({ email: { $ne: env.SEED_ADMIN_EMAIL } });
     await DoctorProfile.deleteMany({});
     await PatientModel.deleteMany({});
+    const { DoctorSpecializationModel } = await import("../src/db/schema/index.js");
+    await DoctorSpecializationModel.deleteMany({});
 }
