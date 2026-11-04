@@ -22,7 +22,7 @@ const doctorProfileSchema = new mongoose.Schema<IDoctorProfile>(
     { timestamps: true }
 );
 
-doctorProfileSchema.index({ hospital: 1 });
+doctorProfileSchema.index({ specialization: 1 });
 doctorProfileSchema.index({ createdAt: -1 });
 
 export const DoctorProfile = mongoose.model<IDoctorProfile>("DoctorProfile", doctorProfileSchema);
