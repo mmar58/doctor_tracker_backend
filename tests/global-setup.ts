@@ -13,12 +13,6 @@ export async function setup() {
     await mongoose.connect(env.MONGODB_URI);
     console.log("\n[global-setup] Connected to test DB:", env.MONGODB_URI);
 
-    // Drop legacy unique index on phone if present in test DB
-    await mongoose.connection
-        .collection("doctorprofiles")
-        .dropIndex("phone_1")
-        .catch(() => {});
-
     // Wipe collections for a clean slate
     await Promise.all([
         mongoose.connection.collection("users").deleteMany({}),
