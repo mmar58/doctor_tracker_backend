@@ -45,4 +45,3 @@ patientSchema.index({ status: 1 });
 patientSchema.index({ admit: 1 });
 
 export const PatientModel = mongoose.model<IPatientProfile>("PatientProfile", patientSchema);
-export const PatientProfileModel = PatientModel;
